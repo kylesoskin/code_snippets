@@ -1,4 +1,4 @@
-# code_snippets
+# Vets API 526 info gathering and random code snippets
 
 ## Disclaimer
 These snippets are for information purposes only. Do not run anything anywhere without evaluating and understanding what it is going to do. 
