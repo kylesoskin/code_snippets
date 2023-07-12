@@ -7,14 +7,22 @@ These were all used a few times and not something I thought would be worth pollu
 For example, a lot of the classes under `Sidekiq::Form526BackupSubmissionProcess` are ones that I commited to the code because they offer reusable funcitonality that can be used repeatedly, however these individual snippets, that use those classes, are mostly for one-time/transient needs
 
 
-```
+```ruby
 total = Form526Submission.where('id between ? and ?', 2028256, 2043971);nil
 ```
 Get 526 Form Submissions in range of submission ids 
 
 
 
-```
+
+
+
+
+
+
+
+
+```ruby
 puts x.map {|f| ah = Form526Submission.find(f).auth_headers; [ah['va_eauth_pnid'], ah['va_eauth_pid']].to_csv}.join
 ```
 When `x` is an arrary of `Form526Submission` ids, loop over them all, get the `Form526Submission` object's auth headers. From that, grab the filenumber/ssn and participant ID
@@ -22,7 +30,11 @@ Was used to make a mapping of fn/ssn to participant ids csv for a subset of clai
 
 
 
-```
+
+
+
+
+```ruby
 date = Date.parse('january 01 2022')
 
 Form526Submission.group('date(created_at)').where('id >= 1027488').where('created_at <= ?', 7.days.ago.beginning_of_day).where(submitted_claim_id:nil).where(backup_submitted_claim_id:nil).count(:id).map {|d,v| [d.to_time.to_i*1000, v]}.sort_by{|k,v| k}
@@ -35,7 +47,11 @@ Random snippets. For all submissions where the id is greater than the one listed
 This was probably to get a count, per week, over time, of complete failures. 
 
 
-```
+
+
+
+
+```ruby
 total = Form526Submission.where('created_at BETWEEN ? AND ?', 7.days.ago.beginning_of_day, 0.day.ago.beginning_of_day); nil
 total_count = total.count
 exhausted = total.where(submitted_claim_id: nil).size;nil
@@ -60,7 +76,7 @@ This is for the weekly numbers pulled for VA peple
 
 
 
-```
+```ruby
 x=Form526Submission.find(912)
 x.form["form526"]["form526"]["disabilities"][0]["name"] = "ooooooooooooooooooo"
 ret = EVSS::DisabilityCompensationForm::Service.new(x.auth_headers).get_form526(x.form["form526"].to_json)
@@ -68,7 +84,11 @@ ret = EVSS::DisabilityCompensationForm::Service.new(x.auth_headers).get_form526(
 This was to test (in staging) loading a submission, changing a disability in the payload, and then seeing if we could generate a filled out PDF from EVSS
 We could. 
 
-```
+
+
+
+
+```ruby
 subs = Form526Submission.where('id > 1840615').where(submitted_claim_id: nil).where(backup_submitted_claim_id: nil)
 info = subs.map{|s|
   statuses = s.form526_job_statuses
@@ -84,12 +104,16 @@ Form526Submission.where('id > 1840615').where(submitted_claim_id: nil).where(bac
 ```
 This is ... grabbing error messages and statuses from some claims
 
-```
+
+
+
+
+```ruby
 Form526Submission.where('id > 1666288').where('id < 1722743').where(submitted_claim_id: nil).where(backup_submitted_claim_id: nil).each {|submission| Sidekiq::Form526BackupSubmissionProcess::NonBreakeredForm526BackgroundLoader.perform_async(sub.id) }
 ```
 For each of a subset of claims that meet a certain criteria, [get a pdf representation of the claim, and upload it to s3 ](https://github.com/department-of-veterans-affairs/vets-api/blob/87e6bf17d4340f7c8f8669259a9dc715fdfeb2aa/lib/sidekiq/form526_backup_submission_process/processor.rb#L416)
 
-```
+```ruby
 c = ids.size
 i = 0
 ids.each {|id| 
@@ -99,7 +123,7 @@ ids.each {|id|
 ```
 Something similar to the above, but instead of queuing, do it in the foreground, and catch and print any errors to my stdout/rails console
 
-```
+```ruby
 ids = File.read('/tmp/ids.txt').lines.map(&:chomp)
 c = ids.size
 i = 0
@@ -116,7 +140,11 @@ Similar to previous
 
 
 
-```
+
+
+
+
+```ruby
 batch = Sidekiq::Batch.new
 jids = Form526Submission.last(1000).pluck(:id).map {|id|
     batch.jobs do
@@ -159,7 +187,11 @@ This is a couple different versions/iterations of queuing a large number of clai
 
 
 
-```
+
+
+
+
+```ruby
 x = Form526Submission.pluck('user_uuid').where(submitted_claim_id: nil).uniq
 
 x.count {|uuid|  Form526Submission.where(user_uuid: uuid).where.not(submitted_claim_id: nil).count == 0
@@ -168,7 +200,11 @@ Getting all uniq user ids that have submissions that do not have a `submitted_cl
 
 
 
-```
+
+
+
+
+```ruby
 all_ids = Set.new
 x = Form526Submission.select(:id, :created_at, :user_uuid, :encrypted_kms_key, :auth_headers_json_ciphertext, :form_json_ciphertext).where(submitted_claim_id: nil).find_in_batches;nil
 z=0; x.each {|bat| puts "#{Time.now} | BATCH #{z+=1}"; all_ids.merge(bat.map {|b| [b.id, b.created_at, b.user_uuid, b.form_json, b.auth_headers]})};nil
@@ -176,8 +212,7 @@ z=0; x.each {|bat| puts "#{Time.now} | BATCH #{z+=1}"; all_ids.merge(bat.map {|b
 This one, picks out certain fields (for perf reasons) where there are no `submitted_claim_id`, and then, in batches, iterates over all of them, adding data from each to a Set.
 With some reporting stuff going to stdout to watch it do it and monitor progress. 
 
-
-```
+```ruby
 file = '/tmp/result.yml'
 File.write(file, all_ids.to_yaml)
 puts Reports::Uploader.get_s3_link(file)
@@ -186,7 +221,11 @@ This looks like what was done after the collection of the previous data. (Write 
 
 
 
-```
+
+
+
+
+```ruby
 all_ids = Set.new
 x = Form526Submission.select(:id, :created_at, :user_uuid, :encrypted_kms_key, :auth_headers_json_ciphertext, :form_json_ciphertext).where('submitted_claim_id IS NULL AND id < 1666372').find_in_batches(batch_size: 10000);nil
 z=0; x.each {|bat| puts "#{Time.now} | BATCH #{z+=1}"; all_ids.merge(bat.map {|b| [b.id, b.created_at, b.user_uuid, b.form_json, b.auth_headers]})};nil
