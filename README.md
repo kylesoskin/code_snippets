@@ -6,11 +6,14 @@ These were all used a few times and not something I thought would be worth pollu
 
 For example, a lot of the classes under `Sidekiq::Form526BackupSubmissionProcess` are ones that I commited to the code because they offer reusable funcitonality that can be used repeatedly, however these individual snippets, that use those classes, are mostly for one-time/transient needs
 
+---
 
 ```ruby
 total = Form526Submission.where('id between ? and ?', 2028256, 2043971);nil
 ```
 Get 526 Form Submissions in range of submission ids 
+
+---
 
 
 
@@ -27,6 +30,8 @@ puts x.map {|f| ah = Form526Submission.find(f).auth_headers; [ah['va_eauth_pnid'
 ```
 When `x` is an arrary of `Form526Submission` ids, loop over them all, get the `Form526Submission` object's auth headers. From that, grab the filenumber/ssn and participant ID
 Was used to make a mapping of fn/ssn to participant ids csv for a subset of claims
+
+---
 
 
 
@@ -45,6 +50,8 @@ Form526Submission.group("DATE_TRUNC('year', created_at)", "DATE_TRUNC('week', cr
 ```
 Random snippets. For all submissions where the id is greater than the one listed, and created more than 1 week ago, count the number with no `submitted_claim_ids` or `backup_submitted_claim_id`
 This was probably to get a count, per week, over time, of complete failures. 
+
+---
 
 
 
@@ -70,6 +77,8 @@ EOF
 ```
 This is for the weekly numbers pulled for VA peple
 
+---
+
 
 
 
@@ -83,6 +92,8 @@ ret = EVSS::DisabilityCompensationForm::Service.new(x.auth_headers).get_form526(
 ```
 This was to test (in staging) loading a submission, changing a disability in the payload, and then seeing if we could generate a filled out PDF from EVSS
 We could. 
+
+---
 
 
 
@@ -103,6 +114,8 @@ pp info.size
 Form526Submission.where('id > 1840615').where(submitted_claim_id: nil).where(backup_submitted_claim_id: nil).where('created_at <= ?', 1.day.ago).
 ```
 This is ... grabbing error messages and statuses from some claims
+
+---
 
 
 
@@ -137,6 +150,8 @@ ids.each do |id|
 end
 ```
 Similar to previous
+
+---
 
 
 
@@ -185,6 +200,8 @@ end
 ```
 This is a couple different versions/iterations of queuing a large number of claims in a batch with various throttling methods to not wreck EVSS
 
+---
+
 
 
 
@@ -197,6 +214,8 @@ x = Form526Submission.pluck('user_uuid').where(submitted_claim_id: nil).uniq
 x.count {|uuid|  Form526Submission.where(user_uuid: uuid).where.not(submitted_claim_id: nil).count == 0
 ```
 Getting all uniq user ids that have submissions that do not have a `submitted_claim_id`
+
+---
 
 
 
@@ -219,6 +238,8 @@ puts Reports::Uploader.get_s3_link(file)
 ```
 This looks like what was done after the collection of the previous data. (Write the Set to a yaml file, then upload it to S3. `Reports::Uploader.get_s3_link(file)` uploads the file to S3 and outputs a presigned url. 
 
+---
+
 
 
 
@@ -231,3 +252,5 @@ x = Form526Submission.select(:id, :created_at, :user_uuid, :encrypted_kms_key, :
 z=0; x.each {|bat| puts "#{Time.now} | BATCH #{z+=1}"; all_ids.merge(bat.map {|b| [b.id, b.created_at, b.user_uuid, b.form_json, b.auth_headers]})};nil
 ```
 A variation on the previous snippet. 
+
+---
